@@ -38,3 +38,24 @@ def edges_to_contours(edges, color=(0, 0, 255), thickness=2):
     img_contours = np.zeros((*edges.shape[:2], 3))
     cv.drawContours(img_contours, contours, -1, color, thickness)
     return img_contours
+
+
+# * Usful Functions from Experiment 07 *
+
+
+def img_to_mexican_hat(img, ksize=3):
+    sobel_x = cv.Sobel(img, cv.CV_64F, 1, 0, ksize=ksize)
+    sobel_y = cv.Sobel(img, cv.CV_64F, 0, 1, ksize=ksize)
+    sobel_combined = cv.magnitude(sobel_x, sobel_y)
+    return sobel_combined
+
+
+def img_to_hanny(img, blur_kernal=(3, 3)):
+    img_blur = cv.GaussianBlur(img, blur_kernal, 0)
+    img_blur_lap = cv.Laplacian(img_blur, cv.CV_64F)
+    return img_blur_lap
+
+def imge_otsu_thresh(img):
+    img_gray = img if (len(img.shape) < 3) else cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+    _, img_gray_thresh = cv.threshold(img_gray, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU)
+    return img_gray_thresh
