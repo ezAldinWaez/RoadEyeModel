@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 # %matplotlib widget
 import cv2 as cv
@@ -17,23 +18,23 @@ def destroy_when_esc():
             return cv.destroyAllWindows()
 
 
-def img_to_canny_edges(img, blur_kernel=None, multiplier=0.3):
+def img_to_canny_edges(img, blur_kernel=None):
     """
     Detect the edges of the given `img` using Canny algorithm,
     the upper and lower values are calculated depending on img
-    median value plus and minus some `multiplier` of it.
+    median value.
 
     You can bluring the image before applying Canny by parsing
     a `blur_kernel` to it (e.g. blur_kernel=(5, 5)).
 
-    You can change `blur_kernel` size or `multiplier` value to
-    control how much detailes are detected.
+    You can change `blur_kernel` size to control how much
+    detailes are detected.
     """
     if blur_kernel:
         img = cv.blur(img, blur_kernel)
     img_med = np.median(img)
-    img_med_lower = int(max(0, (1 - multiplier) * img_med))
-    img_med_upper = int(min(255, (1 + multiplier) * img_med))
+    img_med_lower = int(max(0, 0.7 * img_med))
+    img_med_upper = int(min(255, 1.3 * img_med))
     img_edges = cv.Canny(img, img_med_lower, img_med_upper)
     return img_edges
 
@@ -123,42 +124,54 @@ def shadow_remove(img, shadow_mask):
     return img_shadow_removed
 
 
-def thresh_bin(img_gray, thresh=None):
+def thresh_bin(img, thresh=None):
     if thresh is None:
-        thresh = np.mean(img_gray)
+        thresh = np.mean(img)
+    img_gray = cv.cvtColor(img, cv.COLOR_RGB2GRAY) if len(
+        img.shape) > 2 else img
     img_bin = cv.threshold(img_gray, thresh, 255, cv.THRESH_BINARY)[1]
-    return img_bin
+    return img_bin.astype('uint8')
 
 
-def thresh_bin_inv(img_gray, thresh=None):
+def thresh_bin_inv(img, thresh=None):
     if thresh is None:
-        thresh = np.mean(img_gray)
+        thresh = np.mean(img)
+    img_gray = cv.cvtColor(img, cv.COLOR_RGB2GRAY) if len(
+        img.shape) > 2 else img
     img_bin = cv.threshold(img_gray, thresh, 255, cv.THRESH_BINARY_INV)[1]
-    return img_bin
+    return img_bin.astype('uint8')
 
 
-def thresh_otsu(img_gray):
+def thresh_otsu(img):
+    img_gray = cv.cvtColor(img, cv.COLOR_RGB2GRAY) if len(
+        img.shape) > 2 else img
     img_bin = cv.threshold(
         img_gray, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU)[1]
-    return img_bin
+    return img_bin.astype('uint8')
 
 
-def thresh_otsu_inv(img_gray):
+def thresh_otsu_inv(img):
+    img_gray = cv.cvtColor(img, cv.COLOR_RGB2GRAY) if len(
+        img.shape) > 2 else img
     img_bin = cv.threshold(
         img_gray, 0, 255, cv.THRESH_BINARY_INV + cv.THRESH_OTSU)[1]
-    return img_bin
+    return img_bin.astype('uint8')
 
 
-def thresh_adapt_mean(img_gray):
+def thresh_adapt_mean(img):
+    img_gray = cv.cvtColor(img, cv.COLOR_RGB2GRAY) if len(
+        img.shape) > 2 else img
     img_bin = cv.adaptiveThreshold(
         img_gray, 255, cv.ADAPTIVE_THRESH_MEAN_C, cv.THRESH_BINARY, 11, 2)
-    return img_bin
+    return img_bin.astype('uint8')
 
 
-def thresh_adapt_gaussian(img_gray):
+def thresh_adapt_gaussian(img):
+    img_gray = cv.cvtColor(img, cv.COLOR_RGB2GRAY) if len(
+        img.shape) > 2 else img
     img_bin = cv.adaptiveThreshold(
         img_gray, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 11, 2)
-    return img_bin
+    return img_bin.astype('uint8')
 
 
 def img_to_mexican_hat(img, ksize=3):
@@ -175,7 +188,29 @@ def img_to_hanny(img, blur_kernal=(3, 3)):
 
 # * Others
 
+
 def scale_img(img, scale=0.5):
     new_shape = (int(img.shape[1] * scale), int(img.shape[0] * scale))
     img_scaled = cv.resize(img, new_shape)
     return img_scaled
+
+
+def get_video_background(vedio_path):
+    frames = [plt.imread(f'{vedio_path}/{file}')
+              for file in os.listdir(vedio_path) if file.endswith('.jpg')]
+    background = np.median(frames, axis=0).astype('uint8')
+    return background
+
+
+def img_to_pixels(img):
+    return img.flatten().reshape(1, -1)
+
+
+def evaluate(img_result, img_desired):
+    l1, l2 = img_result.flatten(), img_desired.flatten()
+
+    return {
+        'Correlation Coeficient': f'{np.corrcoef(l1, l2)[0, -1] :.3%}',
+        'Eculodian Distance': f'{np.sqrt(np.sum((l1 - l2) ** 2)) :,.6}',
+        'Cosine Similarity': f'{np.sum(l1 * l2, axis=-1) / (np.linalg.norm(l1, axis=-1) * np.linalg.norm(l2, axis=-1)) :f}',
+    }
