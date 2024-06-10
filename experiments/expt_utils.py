@@ -184,7 +184,7 @@ def img_to_mexican_hat(img, ksize=3):
 def img_to_hanny(img, blur_kernal=(3, 3)):
     img_blur = cv.GaussianBlur(img, blur_kernal, 0)
     img_blur_lap = cv.Laplacian(img_blur, cv.CV_64F)
-    return img_blur_lap
+    return (img_blur_lap * 255).astype('uint8')
 
 # * Others
 
