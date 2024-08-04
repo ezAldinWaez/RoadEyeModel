@@ -5,6 +5,7 @@ from ultralytics import YOLO
 from scipy.signal import savgol_filter
 from math import atan2, degrees
 
+
 def predectOnVideo(videoPath, modelPath):
     track_history = defaultdict(lambda: [])
 
@@ -60,6 +61,26 @@ def predectOnVideo(videoPath, modelPath):
                 y1 = int(y) - int(h / 2)
                 y2 = y1 + h
 
+                # Draw the tracking lines
+                track_history_points = np.array([(x, y) for _, x, y in track_history[track_id]])
+                history_points = np.hstack(track_history_points).astype(np.int32).reshape((-1, 1, 2))
+                cv.polylines(
+                    img=roi,
+                    pts=[history_points],
+                    isClosed=False,
+                    color=(0, 0, 255),
+                    thickness=3)
+
+                # Draw the smoothed tracking lines
+                track_history_points_smoothed = np.array([(x, y) for _, x, y in smooth_path(track_history[track_id])])
+                history_points_smoothed = np.hstack(track_history_points_smoothed).astype(np.int32).reshape((-1, 1, 2))
+                cv.polylines(
+                    img=roi,
+                    pts=[history_points_smoothed],
+                    isClosed=False,
+                    color=(0, 255, 0),
+                    thickness=2)
+
                 cv.rectangle(
                     img=roi,
                     pt1=(int(x1), int(y1)),
@@ -81,40 +102,20 @@ def predectOnVideo(videoPath, modelPath):
                     color=(0, 0, 255),
                     thickness=2)
 
-                # Draw the tracking lines
-                track_history_points = np.array([(x, y) for _, x, y in track_history[track_id]])
-                history_points = np.hstack(track_history_points).astype(np.int32).reshape((-1, 1, 2))
-                cv.polylines(
-                    img=roi,
-                    pts=[history_points],
-                    isClosed=False,
-                    color=(0, 0, 255),
-                    thickness=2)
+                if len(track_history[track_id]) > 5:
+                    speed = speeds.get(track_id, 0)
+                    direction = angles.get(track_id, 0)
 
-                if len(track_history[track_id]) >= 5:
-                    # Draw the smoothed tracking lines
-                    track_history_points_smoothed = np.array([(x, y) for _, x, y in smooth_path(track_history[track_id])])
-                    history_points_smoothed = np.hstack(track_history_points_smoothed).astype(np.int32).reshape((-1, 1, 2))
-                    cv.polylines(
+                    # Draw the speed vector
+                    speed_v_end = (
+                        int(x + .5 * speed * np.cos(direction * np.pi / 180)),
+                        int(y + .5 * speed * np.sin(direction * np.pi / 180)))
+                    cv.arrowedLine(
                         img=roi,
-                        pts=[history_points_smoothed],
-                        isClosed=False,
-                        color=(0, 255, 0),
+                        pt1=(int(x), int(y)),
+                        pt2=speed_v_end,
+                        color=(0, 0, 0),
                         thickness=2)
-
-
-                speed = speeds.get(track_id, 0)
-                direction = angles.get(track_id, 0)
-
-                # Draw the speed vector
-                speed_v = (int(x + speed * np.cos(direction * np.pi / 180)),
-                           int(y + speed * np.sin(direction * np.pi / 180)))
-                cv.arrowedLine(
-                    img=roi,
-                    pt1=(int(x), int(y)),
-                    pt2=speed_v,
-                    color=(0, 0, 0),
-                    thickness=2)
 
         writer.write(frame)
 
@@ -127,7 +128,7 @@ def calculate_current_motions(track_history, num_points=5):
     for track_id, data in track_history.items():
         if len(data) <= num_points:
             continue
-        smoothed_data = smooth_path(data, window_length=5, poly_order=2)
+        smoothed_data = smooth_path(data)
         speeds[track_id], angles[track_id] = calculate_current_motion(smoothed_data, num_points)
     return speeds, angles
 
@@ -153,9 +154,13 @@ def calculate_current_motion(data, num_points):
 
     return speed, direction
 
-def smooth_path(data, window_length=5, poly_order=2):
+def smooth_path(data, window_length=10, poly_order=2):
     
-    # spl = UnivariateSpline(x, y, s=s)
+    if window_length > len(data) or window_length <= poly_order:
+        window_length = len(data) - 1
+
+    if window_length <= poly_order:
+            return data        
 
     timestamps = np.array([point[0] for point in data])
     positions = np.array([(point[1], point[2]) for point in data])
@@ -166,7 +171,7 @@ def smooth_path(data, window_length=5, poly_order=2):
     return list(zip(timestamps, smoothed_x, smoothed_y))
 
 # * To predict on a video, run:
-# VIDEO_PATH = '/path/to/video.mp4'
-# MODEL_PATH = '../models/pretrained_e50.pt'
+VIDEO_PATH = '/path/to/video.mp4' # (e.g. 'C:/Users/ezald/Desktop/clear_street.mp4' )
+MODEL_PATH = '../models/pretrained_e50.pt'
 
-# predectOnVideo(VIDEO_PATH, MODEL_PATH)
+predectOnVideo(VIDEO_PATH, MODEL_PATH)
