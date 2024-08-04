@@ -59,6 +59,60 @@ def img_to_canny_edges(img, blur_kernel=None):
     return img_edges
 
 
+def img_to_mexican_hat_edges(img, ksize=3):
+    sobel_x = cv.Sobel(img, cv.CV_64F, 1, 0, ksize=ksize)
+    sobel_y = cv.Sobel(img, cv.CV_64F, 0, 1, ksize=ksize)
+    sobel_combined = cv.magnitude(sobel_x, sobel_y)
+    return sobel_combined
+
+
+def img_to_hanny_edges(img, blur_kernal=(3, 3)):
+    img_blur = cv.GaussianBlur(img, blur_kernal, 0)
+    img_blur_lap = cv.Laplacian(img_blur, cv.CV_64F)
+    return (img_blur_lap * 255).astype('uint8')
+
+
+def img_to_prewitt_edges(img, kernel_size=(3, 3)):
+    img_blur = cv.blur(img, kernel_size)
+    kernelx = np.array([[1, 1, 1], [0, 0, 0], [-1, -1, -1]])
+    kernely = np.array([[-1, 0, 1], [-1, 0, 1], [-1, 0, 1]])
+    img_prewittx = cv.filter2D(img_blur, cv.CV_64F, kernelx)
+    img_prewitty = cv.filter2D(img_blur, cv.CV_64F, kernely)
+    img_prewitt = cv.magnitude(img_prewittx, img_prewitty)
+    return img_prewitt
+
+
+def img_to_rebert_cross_edges(img, kernel_size=(3, 3)):
+    img_blur = cv.blur(img, kernel_size)
+    roberts_x = np.array([[1, 0], [0, -1]], dtype=np.float32)
+    roberts_y = np.array([[0, 1], [-1, 0]], dtype=np.float32)
+    roberts_x_edge = cv.filter2D(img_blur, cv.CV_64F, roberts_x)
+    roberts_y_edge = cv.filter2D(img_blur, cv.CV_64F, roberts_y)
+    img_roberts = cv.magnitude(roberts_x_edge, roberts_y_edge)
+    return img_roberts
+
+
+def img_to_frei_chen_edges(img, kernel_size=(3, 3)):
+    img_blur = cv.blur(img, kernel_size)
+    frei_chen_x = np.array(
+        [[1, np.sqrt(2), 1], [0, 0, 0], [-1, -np.sqrt(2), -1]], dtype=np.float32)
+    frei_chen_y = np.array(
+        [[-1, 0, 1], [-np.sqrt(2), 0, np.sqrt(2)], [-1, 0, 1]], dtype=np.float32)
+    frei_chen_x_edge = cv.filter2D(img_blur, cv.CV_64F, frei_chen_x)
+    frei_chen_y_edge = cv.filter2D(img_blur, cv.CV_64F, frei_chen_y)
+    img_frei_chen = cv.magnitude(frei_chen_x_edge, frei_chen_y_edge)
+    return img_frei_chen
+
+
+def img_to_cragis_edges(img, kernel_size=(3, 3)):
+    image_blur = cv.GaussianBlur(img, kernel_size, 0)
+    craigs_x = cv.Sobel(image_blur, cv.CV_64F, 1, 0, ksize=3)
+    craigs_y = cv.Sobel(image_blur, cv.CV_64F, 0, 1, ksize=3)
+    img_craigs = cv.magnitude(craigs_x, craigs_y)
+    return img_craigs
+
+
+
 def edges_to_contours(edges, rng_down=0, rng_up=np.inf, color=(255, 0, 0), thickness=1):
     """
     Find and draw contours from a given `edges`, the contours
@@ -191,25 +245,6 @@ def thresh_adapt_gaussian(img):
     img_bin = cv.adaptiveThreshold(
         img_gray, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 11, 2)
     return img_bin.astype('uint8')
-
-
-def img_to_mexican_hat(img, ksize=3):
-    """
-    Apply Mexican-Hat filter on `img`.
-    """
-    sobel_x = cv.Sobel(img, cv.CV_64F, 1, 0, ksize=ksize)
-    sobel_y = cv.Sobel(img, cv.CV_64F, 0, 1, ksize=ksize)
-    sobel_combined = cv.magnitude(sobel_x, sobel_y)
-    return sobel_combined
-
-
-def img_to_hanny(img, blur_kernal=(3, 3)):
-    """
-    Apply Hanny filter on `img`.
-    """
-    img_blur = cv.GaussianBlur(img, blur_kernal, 0)
-    img_blur_lap = cv.Laplacian(img_blur, cv.CV_64F)
-    return (img_blur_lap * 255).astype('uint8')
 
 # * Others
 
