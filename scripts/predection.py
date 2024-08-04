@@ -171,7 +171,7 @@ def smooth_path(data, window_length=10, poly_order=2):
     return list(zip(timestamps, smoothed_x, smoothed_y))
 
 # * To predict on a video, run:
-VIDEO_PATH = '/path/to/video.mp4' # (e.g. 'C:/Users/ezald/Desktop/clear_street.mp4' )
-MODEL_PATH = '../models/pretrained_e50.pt'
+# VIDEO_PATH = '/path/to/video.mp4' # (e.g. 'C:/Users/ezald/Desktop/clear_street.mp4' )
+# MODEL_PATH = '../models/pretrained_e50.pt'
 
-predectOnVideo(VIDEO_PATH, MODEL_PATH)
+# predectOnVideo(VIDEO_PATH, MODEL_PATH)

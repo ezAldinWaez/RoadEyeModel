@@ -111,15 +111,15 @@ def preprocessFrame(background, frame):
 #     os.makedirs(OUTPUT_PATH)
 # preprocessAllVideosFrames(INPUT_PATH, OUTPUT_PATH)
 
-# INPUT_PATH = './datasets/org/val'
-# OUTPUT_PATH = './datasets/preprocessed/val'
+# INPUT_PATH = '/datasets/org/val'
+# OUTPUT_PATH = '/datasets/preprocessed/val'
 # if not os.path.exists(OUTPUT_PATH):
 #     os.makedirs(OUTPUT_PATH)
 # preprocessAllVideosFrames(INPUT_PATH, OUTPUT_PATH)
 
 # * To preprocess a video to predict, run:
-# INPUT_PATH = './path/to/input/folder'
-# OUTPUT_PATH = './path/to/output/folder'
+# INPUT_PATH = '/path/to/input/folder'
+# OUTPUT_PATH = '/path/to/output/folder'
 # VIDEO_NAME = 'video_name.mp4'
 # if not os.path.exists(OUTPUT_PATH):
 #     os.makedirs(OUTPUT_PATH)
