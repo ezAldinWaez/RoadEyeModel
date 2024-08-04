@@ -7,16 +7,36 @@ import os
 
 IMG_DIR = './img'
 OUT_DIR = './out'
-DS_DIR = '../dataset'
+DS_DIR = '../datasets/org'
 
 os.makedirs(f'{OUT_DIR}', exist_ok=True)
 
 
 def destroy_when_esc():
+    """
+    Lock waiting for 'esc' key to destroy all OpenCV windows.
+    """
     while True:
         if cv.waitKey(0) & 0xFF == 27:
             return cv.destroyAllWindows()
 
+
+def img_to_dist_gray(img, base_color):
+    """
+    Convert the given `img` to grayscale depending on how
+    much each pixel is difference with the `base_color`.
+    """
+    hight, width, num_channels = img.shape
+    pixels = img.reshape((hight * width, num_channels))
+    img_dist_gray = np.array([
+        np.sqrt(np.sum((base_color - pixel) ** 2))
+        for pixel in pixels
+    ]).reshape(hight, width)
+    img_dist_gray_norm = cv.normalize(
+        src=img_dist_gray, dst=None, alpha=0, beta=255,
+        norm_type=cv.NORM_MINMAX, dtype=cv.CV_8U,
+    )
+    return img_dist_gray_norm
 
 def img_to_canny_edges(img, blur_kernel=None):
     """
@@ -44,39 +64,20 @@ def edges_to_contours(edges, rng_down=0, rng_up=np.inf, color=(255, 0, 0), thick
     Find and draw contours from a given `edges`, the contours
     are drawen on black image with the given `color` and
     `thickness`.
-
+    
     You can change `rng_down` and `rng_up` to determain the
     range that contours' lengths are belong to.
     """
-    all_contours = cv.findContours(
-        edges, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)[0]
+    all_contours = cv.findContours(edges, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)[0]
     selected_contours = [c for c in all_contours if rng_down < len(c) < rng_up]
     img_contours = np.zeros((*edges.shape[:2], 3)).astype('uint8')
     cv.drawContours(img_contours, selected_contours, -1, color, thickness)
     return img_contours
 
 
-def img_to_dist_gray(img, base_color):
-    """
-    Convert the given `img` to grayscale depending on how
-    much each pixel is difference with the `base_color`.
-    """
-    hight, width, num_channels = img.shape
-    pixels = img.reshape((hight * width, num_channels))
-    img_dist_gray = np.array([
-        np.sqrt(np.sum((base_color - pixel) ** 2))
-        for pixel in pixels
-    ]).reshape(hight, width)
-    img_dist_gray_norm = cv.normalize(
-        src=img_dist_gray, dst=None, alpha=0, beta=255,
-        norm_type=cv.NORM_MINMAX, dtype=cv.CV_8U,
-    )
-    return img_dist_gray_norm
-
-
 def find_shadow_mask(img_rgb, cln_kernel=np.ones((3, 3), np.uint8)):
     """
-    ...
+    Find and return the shadow mask for `img_rgb`.
     """
     img_lab = cv.cvtColor(img_rgb, cv.COLOR_RGB2LAB)
 
@@ -100,7 +101,7 @@ def find_shadow_mask(img_rgb, cln_kernel=np.ones((3, 3), np.uint8)):
 
 def shadow_remove(img, shadow_mask):
     """
-    ...
+    Remove the shadow from `img`. 
     """
     img_float = img.astype(np.float32)
 
@@ -125,6 +126,9 @@ def shadow_remove(img, shadow_mask):
 
 
 def thresh_bin(img, thresh=None):
+    """
+    Return the binary thresholding for `img`.
+    """
     if thresh is None:
         thresh = np.mean(img)
     img_gray = cv.cvtColor(img, cv.COLOR_RGB2GRAY) if len(
@@ -134,6 +138,9 @@ def thresh_bin(img, thresh=None):
 
 
 def thresh_bin_inv(img, thresh=None):
+    """
+    Return the binary inverse thresholding for `img`.
+    """
     if thresh is None:
         thresh = np.mean(img)
     img_gray = cv.cvtColor(img, cv.COLOR_RGB2GRAY) if len(
@@ -143,6 +150,9 @@ def thresh_bin_inv(img, thresh=None):
 
 
 def thresh_otsu(img):
+    """
+    Return Otsu thresholding for `img`.
+    """
     img_gray = cv.cvtColor(img, cv.COLOR_RGB2GRAY) if len(
         img.shape) > 2 else img
     img_bin = cv.threshold(
@@ -151,6 +161,9 @@ def thresh_otsu(img):
 
 
 def thresh_otsu_inv(img):
+    """
+    Return Otsu inverse thresholding for `img`.
+    """
     img_gray = cv.cvtColor(img, cv.COLOR_RGB2GRAY) if len(
         img.shape) > 2 else img
     img_bin = cv.threshold(
@@ -159,6 +172,9 @@ def thresh_otsu_inv(img):
 
 
 def thresh_adapt_mean(img):
+    """
+    Return the adaptive mean thresholding for `img`.
+    """
     img_gray = cv.cvtColor(img, cv.COLOR_RGB2GRAY) if len(
         img.shape) > 2 else img
     img_bin = cv.adaptiveThreshold(
@@ -167,6 +183,9 @@ def thresh_adapt_mean(img):
 
 
 def thresh_adapt_gaussian(img):
+    """
+    Return the adaptive gaussian thresholding for `img`.
+    """
     img_gray = cv.cvtColor(img, cv.COLOR_RGB2GRAY) if len(
         img.shape) > 2 else img
     img_bin = cv.adaptiveThreshold(
@@ -175,6 +194,9 @@ def thresh_adapt_gaussian(img):
 
 
 def img_to_mexican_hat(img, ksize=3):
+    """
+    Apply Mexican-Hat filter on `img`.
+    """
     sobel_x = cv.Sobel(img, cv.CV_64F, 1, 0, ksize=ksize)
     sobel_y = cv.Sobel(img, cv.CV_64F, 0, 1, ksize=ksize)
     sobel_combined = cv.magnitude(sobel_x, sobel_y)
@@ -182,6 +204,9 @@ def img_to_mexican_hat(img, ksize=3):
 
 
 def img_to_hanny(img, blur_kernal=(3, 3)):
+    """
+    Apply Hanny filter on `img`.
+    """
     img_blur = cv.GaussianBlur(img, blur_kernal, 0)
     img_blur_lap = cv.Laplacian(img_blur, cv.CV_64F)
     return (img_blur_lap * 255).astype('uint8')
@@ -195,9 +220,9 @@ def scale_img(img, scale=0.5):
     return img_scaled
 
 
-def get_video_background(vedio_path):
+def get_video_background(vedio_path, video_num):
     frames = [plt.imread(f'{vedio_path}/{file}')
-              for file in os.listdir(vedio_path) if file.endswith('.jpg')]
+              for file in os.listdir(vedio_path) if file.endswith('.jpg') and video_num == file.split('_')[0]]
     background = np.median(frames, axis=0).astype('uint8')
     return background
 
